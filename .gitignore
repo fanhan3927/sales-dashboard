@@ -1,0 +1,10 @@
+# 依赖（如未来引入构建步骤）
+node_modules/
+
+# 日志与系统文件
+*.log
+.DS_Store
+Thumbs.db
+
+# 本地临时文件
+*.tmp

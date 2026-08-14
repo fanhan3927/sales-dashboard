@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>销售业绩看板 · SalesLens</title>
+  <meta name="description" content="上传 Excel，AI 自动整理，3 分钟生成销售业绩看板">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M7 22l6-8 5 4 7-10' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ============ 顶部导航 ============ -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand" id="brandHome" title="回到首页">
+        <span class="brand-mark">
+          <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+            <path d="M7 22l6-8 5 4 7-10" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="brand-name">销售业绩看板</span>
+        <span class="brand-tag">MVP</span>
+      </div>
+      <div class="topbar-actions" id="topbarActions" hidden>
+        <button class="btn btn-ghost btn-sm" id="btnHistory">历史</button>
+        <button class="btn btn-ghost btn-sm" id="btnShare">分享</button>
+        <button class="btn btn-primary btn-sm" id="btnExport">导出 PNG</button>
+        <button class="btn btn-ghost btn-sm" id="btnNew">上传新数据</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- ============ 视图 1：上传 ============ -->
+    <section class="view" id="view-upload">
+      <div class="upload-wrap">
+        <div class="upload-hero">
+          <h1>把 Excel 变成看得懂的业绩图</h1>
+          <p class="upload-sub">上传销售明细表，AI 自动识别字段并生成看板 · 全程 3 分钟 · 数据仅在本机浏览器处理，不上传服务器</p>
+        </div>
+
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="上传 Excel 文件">
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
+          <div class="dz-icon">
+            <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 16V4m0 0L7 9m5-5l5 5"/>
+              <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+            </svg>
+          </div>
+          <div class="dz-title">拖拽 Excel 到此处，或<span class="dz-link">点击选择文件</span></div>
+          <div class="dz-hint">支持 .xlsx / .xls / .csv · 单个文件 ≤ 10 万行 · 支持多 Sheet</div>
+        </div>
+
+        <div class="upload-actions">
+          <button class="btn btn-secondary" id="btnDemo">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+            试试示例数据
+          </button>
+        </div>
+
+        <div class="howto">
+          <div class="howto-item"><span class="howto-num">1</span><div><b>上传</b><p>拖入销售明细 Excel</p></div></div>
+          <div class="howto-item"><span class="howto-num">2</span><div><b>AI 整理</b><p>自动识别字段、生成图表</p></div></div>
+          <div class="howto-item"><span class="howto-num">3</span><div><b>分享</b><p>导出图片或链接给老板</p></div></div>
+        </div>
+
+        <div class="history-strip" id="historyStrip" hidden>
+          <div class="history-title">最近看板</div>
+          <div class="history-chips" id="historyChips"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 视图 2：字段校对 ============ -->
+    <section class="view" id="view-mapping" hidden>
+      <div class="mapping-wrap">
+        <div class="mapping-head">
+          <div>
+            <div class="breadcrumb"><button class="linklike" id="btnBackUpload">← 返回</button><span id="fileNameLabel"></span></div>
+            <h2>AI 字段识别 · 校对确认</h2>
+            <p class="mapping-sub">AI 已根据列名与数据内容识别字段含义，<b>黄色标记</b>为置信度较低的识别，请在下方确认或修正。</p>
+          </div>
+        </div>
+
+        <div class="sheet-pickers">
+          <label class="picker">
+            <span class="picker-label">数据表</span>
+            <select id="sheetSelect" class="select"></select>
+          </label>
+          <label class="picker">
+            <span class="picker-label">关联目标表（可选）</span>
+            <select id="targetSheetSelect" class="select"><option value="">不使用目标表</option></select>
+          </label>
+        </div>
+
+        <div class="map-table-wrap">
+          <table class="map-table">
+            <thead>
+              <tr><th style="width:34%">Excel 列名</th><th style="width:30%">示例值</th><th>识别为（可修改）</th></tr>
+            </thead>
+            <tbody id="mapTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="mapping-foot">
+          <button class="btn btn-ghost" id="btnRedetect">重新识别</button>
+          <button class="btn btn-primary" id="btnBuild" disabled>生成看板</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 视图 3：看板 ============ -->
+    <section class="view" id="view-dashboard" hidden>
+      <div class="dash-head">
+        <div class="dash-title">
+          <h2 id="dashTitle">销售业绩看板</h2>
+          <span class="dash-meta" id="dashMeta"></span>
+        </div>
+        <div class="dash-controls">
+          <div class="seg" id="rangeSeg" role="tablist">
+            <button class="seg-btn" data-range="month">本月</button>
+            <button class="seg-btn" data-range="quarter">本季</button>
+            <button class="seg-btn" data-range="year">本年</button>
+            <button class="seg-btn active" data-range="all">全部</button>
+          </div>
+          <div class="filter-chips" id="filterChips" hidden></div>
+        </div>
+      </div>
+
+      <div class="insight-strip" id="insightStrip"></div>
+
+      <div class="kpi-row" id="kpiRow"></div>
+
+      <div class="chart-grid" id="dashboardCanvas">
+        <div class="card chart-card span2" id="card-trend">
+          <div class="card-head"><h3>销售趋势</h3><span class="card-sub" id="sub-trend"></span></div>
+          <div class="chart" id="chart-trend"></div>
+        </div>
+        <div class="card chart-card" id="card-region">
+          <div class="card-head"><h3>区域占比</h3><span class="card-sub">按销售额</span></div>
+          <div class="chart" id="chart-region"></div>
+        </div>
+        <div class="card chart-card" id="card-salesperson">
+          <div class="card-head"><h3>Top 销售员</h3><span class="card-sub">按销售额</span></div>
+          <div class="chart" id="chart-salesperson"></div>
+        </div>
+        <div class="card chart-card" id="card-product">
+          <div class="card-head"><h3>热销产品</h3><span class="card-sub">按销售额</span></div>
+          <div class="chart" id="chart-product"></div>
+        </div>
+        <div class="card chart-card" id="card-gauge">
+          <div class="card-head"><h3>目标完成率</h3><span class="card-sub" id="sub-gauge"></span></div>
+          <div class="chart" id="chart-gauge"></div>
+        </div>
+      </div>
+
+      <p class="click-hint">提示：点击条形图 / 环形图可联动筛选，再次点击取消筛选。</p>
+    </section>
+  </main>
+
+  <!-- ============ 历史弹窗 ============ -->
+  <div class="modal-mask" id="historyModal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3>历史看板</h3>
+        <button class="modal-close" id="historyClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body" id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- ============ 分享弹窗 ============ -->
+  <div class="modal-mask" id="shareModal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3>分享看板</h3>
+        <button class="modal-close" id="shareClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="share-tip">链接内嵌数据（无需服务器），对方打开即可看到同一看板。</p>
+        <textarea class="share-box" id="shareBox" readonly rows="3"></textarea>
+        <button class="btn btn-primary btn-block" id="btnCopyLink">复制链接</button>
+        <p class="share-warn" id="shareWarn"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- 本地化依赖 -->
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/echarts.min.js"></script>
+  <script src="vendor/html2canvas.min.js"></script>
+  <!-- 业务模块 -->
+  <script src="js/fields.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/insights.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/share.js"></script>
+  <script src="js/demo.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
